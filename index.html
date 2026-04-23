@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+        body { margin: 0; background: #2c3e50; overflow: hidden; font-family: 'Arial', sans-serif; }
+        canvas { display: block; background: #95a5a6; margin: auto; }
+        #ui { position: absolute; top: 10px; width: 100%; text-align: center; color: #f1c40f; font-size: 24px; text-shadow: 2px 2px black; pointer-events: none; }
+    </style>
+</head>
+<body>
+    <div id="ui">KASA: <span id="moneyText">0</span>₺</div>
+    <canvas id="gameCanvas"></canvas>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const moneyText = document.getElementById("moneyText");
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // RENDER LİNKİNİ BURAYA GELECEK
+        const socket = io("https://SENIN-RENDER-LINKIN.onrender.com");
+
+        let veriler = { oyuncular: {}, dukkanDurumu: { toplamPara: 0 } };
+        let benimKarakter = { x: 200, y: 400, pizzaVar: false };
+
+        socket.on('guncelle', (data) => {
+            veriler = data;
+            moneyText.innerText = data.dukkanDurumu.toplamPara;
+        });
+
+        function ciz() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. FIRIN (Pizza Kaynağı)
+            ctx.fillStyle = "#c0392b";
+            ctx.fillRect(20, 20, 80, 80);
+            ctx.fillStyle = "white";
+            ctx.fillText("FIRIN", 40, 65);
+
+            // 2. MÜŞTERİ MASASI (Hedef)
+            ctx.fillStyle = "#8e44ad";
+            ctx.fillRect(canvas.width - 100, 20, 80, 80);
+            ctx.fillStyle = "white";
+            ctx.fillText("MASA", canvas.width - 80, 65);
+
+            // 3. OYUNCULARI ÇİZ
+            for (let id in veriler.oyuncular) {
+                let p = veriler.oyuncular[id];
+                
+                // Karakter gövdesi
+                ctx.fillStyle = (id === socket.id) ? "#e74c3c" : "#3498db";
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 25, 0, Math.PI * 2);
+                ctx.fill();
+
+                // Eğer pizza taşıyorsa üstünde göster
+                if (p.pizzaVar) {
+                    ctx.fillStyle = "#f39c12";
+                    ctx.fillRect(p.x - 15, p.y - 45, 30, 10);
+                }
+            }
+            requestAnimationFrame(ciz);
+        }
+
+        // DOKUNMATİK KONTROL VE MANTIK
+        canvas.addEventListener("touchmove", (e) => {
+            let t = e.touches[0];
+            benimKarakter.x = t.clientX;
+            benimKarakter.y = t.clientY;
+
+            // Fırına değdi mi? (Pizza Al)
+            if (benimKarakter.x < 100 && benimKarakter.y < 100) {
+                benimKarakter.pizzaVar = true;
+            }
+
+            // Masaya değdi mi? (Pizza Sat)
+            if (benimKarakter.pizzaVar && benimKarakter.x > canvas.width - 100 && benimKarakter.y < 100) {
+                benimKarakter.pizzaVar = false;
+                socket.emit('paraKazan', 20); // Ortak kasaya 20₺ ekle
+            }
+
+            socket.emit('hareket', benimKarakter);
+        });
+
+        ciz();
+    </script>
+</body>
+</html>
