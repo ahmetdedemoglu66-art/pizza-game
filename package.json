@@ -1,7 +1,7 @@
 {
   "name": "pizza-ortak-oyunu",
   "version": "1.0.0",
-  "description": "2 Kişilik Pizza Dükkanı",
+  "description": "2 Arkadaş Pizza Dükkanı Yönetimi",
   "main": "server.js",
   "dependencies": {
     "express": "^4.18.2",
