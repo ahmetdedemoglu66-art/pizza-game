@@ -6,39 +6,32 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, { cors: { origin: "*" } });
 
-// DÜKKANIN ORTAK DURUMU
-let dukkanDurumu = {
-    toplamPara: 0,
-    aktifMusteriler: [],
-    acilmisMasalar: 1,
-    pizzalar: []
+let dukkan = {
+    oyuncular: {},
+    toplamPara: 0
 };
 
-let oyuncular = {};
-
 io.on('connection', (socket) => {
-    oyuncular[socket.id] = { x: 200, y: 400, pizzaVar: false };
-    
-    // Bağlanan yeni oyuncuya dükkanın o anki halini gönder
-    socket.emit('baslangic', dukkanDurumu);
+    console.log('Yeni ortak: ' + socket.id);
+    dukkan.oyuncular[socket.id] = { x: 200, y: 300, pizzaVar: false };
 
     socket.on('hareket', (data) => {
-        if (oyuncular[socket.id]) {
-            oyuncular[socket.id] = data;
-            io.emit('guncelle', { oyuncular, dukkanDurumu });
+        if (dukkan.oyuncular[socket.id]) {
+            dukkan.oyuncular[socket.id] = data;
+            io.emit('guncelle', dukkan);
         }
     });
 
     socket.on('paraKazan', (miktar) => {
-        dukkanDurumu.toplamPara += miktar;
-        io.emit('guncelle', { oyuncular, dukkanDurumu });
+        dukkan.toplamPara += miktar;
+        io.emit('guncelle', dukkan);
     });
 
     socket.on('disconnect', () => {
-        delete oyuncular[socket.id];
-        io.emit('guncelle', { oyuncular, dukkanDurumu });
+        delete dukkan.oyuncular[socket.id];
+        io.emit('guncelle', dukkan);
     });
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("Sunucu hazır!"));
+server.listen(PORT, () => console.log("Dükkan açık!"));
